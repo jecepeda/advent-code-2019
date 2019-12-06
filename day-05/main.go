@@ -23,7 +23,7 @@ const (
 	JumpIfFalse Opcode = 6
 	LessThan    Opcode = 7
 	Equals      Opcode = 8
-	Finish      Opcode = 99
+	Break       Opcode = 99
 )
 
 // ParameterMode is the kind of parameters we can
@@ -60,7 +60,7 @@ var executions = map[Opcode]Execution{
 	Multiply:    execMultiplication,
 	Input:       execInput,
 	Output:      execOutput,
-	Finish:      execBreak,
+	Break:       execBreak,
 	JumpIfTrue:  execJumpIfTrue,
 	JumpIfFalse: execJumpIfFalse,
 	LessThan:    execLessThan,
@@ -104,7 +104,7 @@ func increaseCounter(ins Instruction) int {
 		return 2
 	case JumpIfTrue, JumpIfFalse:
 		return 3
-	case Finish:
+	case Break:
 		return 0
 	}
 	return 0
@@ -223,7 +223,7 @@ func execEquals(pos *int, i Instruction, instructions []int) ([]int, bool) {
 	if i.Second == PositionMode {
 		i2 = instructions[i2]
 	}
-	var val int
+	var val int742621
 	if i1 == i2 {
 		val = 1
 	}
