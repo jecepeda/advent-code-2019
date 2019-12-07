@@ -9,38 +9,39 @@ import (
 // Node is the node of a tree
 // with children inside
 type Node struct {
-	Name   string
-	Orbits int
-	Nodes  []*Node
-	Parent *Node
+	Name  string
+	Edges []*Edge
+	Count int
 }
 
-func (n *Node) String() string {
-	var res strings.Builder
-	if n.Parent != nil {
-		res.WriteString(n.Parent.Name + " ) ")
-	}
-	res.WriteString(fmt.Sprintf("%s (%d)", n.Name, n.Orbits))
-	for _, no := range n.Nodes {
-		res.WriteString(fmt.Sprintf(" %s", no.Name))
-	}
-	return res.String()
+type Edge struct {
+	From    *Node
+	To      *Node
+	Visited bool
 }
 
-// Traverse traverse the stellar system calculating
-// orbits
 func (n *Node) Traverse() {
-	fmt.Println(n)
-	for _, no := range n.Nodes {
-		no.Orbits = n.Orbits + 1
-		no.Traverse()
+	for _, child := range n.Edges {
+		if !child.Visited && child.From.Name == n.Name {
+			child.Visited = true
+			child.To.Count = n.Count + 1
+			child.To.Traverse()
+		}
 	}
 }
 
-// Add adds a new Node into de tree
-func (n *Node) Add(new *Node) {
-	new.Parent = n
-	n.Nodes = append(n.Nodes, new)
+func (n *Node) GetShortestPaths() {
+	for _, child := range n.Edges {
+		if child.From.Name == n.Name && !child.Visited {
+			child.Visited = true
+			child.To.Count = n.Count + 1
+			child.To.GetShortestPaths()
+		} else if child.To.Name == n.Name && !child.Visited {
+			child.Visited = true
+			child.From.Count = n.Count + 1
+			child.From.GetShortestPaths()
+		}
+	}
 }
 
 func readFile(filename string) ([][2]string, error) {
@@ -66,6 +67,7 @@ func main() {
 		panic(err)
 	}
 	nodeMap := map[string]*Node{}
+	edges := []*Edge{}
 	for _, n := range nodes {
 		var node1, node2 *Node
 		var ok bool
@@ -82,13 +84,38 @@ func main() {
 			}
 			nodeMap[second] = node2
 		}
-		node1.Add(node2)
+		edge := Edge{
+			From: node1,
+			To:   node2,
+		}
+		edges = append(edges, &edge)
+		node1.Edges = append(node1.Edges, &edge)
+		node2.Edges = append(node2.Edges, &edge)
 	}
-	n := nodeMap["COM"]
-	n.Traverse()
-	var result int
-	for _, n := range nodeMap {
-		result += n.Orbits
+
+	com := nodeMap["COM"]
+	com.Traverse()
+	result := 0
+	for _, v := range nodeMap {
+		result += v.Count
 	}
 	fmt.Println(result)
+	// part 2
+	// reset all counters
+	for k := range nodeMap {
+		nodeMap[k].Count = 0
+	}
+	for i := range edges {
+		edges[i].Visited = false
+	}
+
+	you := nodeMap["YOU"]
+	you.GetShortestPaths()
+
+	san := nodeMap["SAN"]
+	// we decrease by two since
+	// we don't take into account
+	// the two node orbits
+	fmt.Println(san.Count - 2)
+
 }
