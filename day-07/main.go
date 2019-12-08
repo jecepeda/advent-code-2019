@@ -37,12 +37,14 @@ func partOne(instructions []int) {
 	for _, comb := range firstPermutations {
 		phase := 0
 		for i := 0; i < 5; i++ {
+			amplifiers[i].Reset()
 			amplifiers[i].Input <- comb[i]
 			amplifiers[i].Input <- phase
 			if !amplifiers[i].Started {
 				go amplifiers[i].Exec(copyInstructions(instructions))
 			}
 			phase = <-amplifiers[i].Output
+			_ = amplifiers[i].Finish
 		}
 		output := amplifiers[len(amplifiers)-1].Out
 		if output > firstOutput {
@@ -54,29 +56,31 @@ func partOne(instructions []int) {
 
 func partTwo(instructions []int) {
 	amplifiers := make([]*intcode.Intcode, 5)
-	for i := range amplifiers {
-		amplifiers[i] = intcode.NewIntCodeProgram()
-	}
-	firstPermutations := combin.Permutations(5, 5)
-	newCombs := []int{5, 6, 7, 8, 9}
-	secondPermutations := getPermutations(newCombs, firstPermutations)
 	var secondOutput int
-	for _, comb := range secondPermutations {
+	permutations := combin.Permutations(5, 5)
+	transformed := getPermutations([]int{5, 6, 7, 8, 9}, permutations)
+	for _, comb := range transformed {
 		phase := 0
 		finish := false
+		for i := range amplifiers {
+			amplifiers[i] = intcode.NewIntCodeProgram()
+		}
 		for !finish {
 			for i := 0; i < 5; i++ {
-				if amplifiers[i].Finished {
-					fmt.Println("amplifier", i, "has finished")
-					finish = true
-					break
+				select {
+				case _ = <-amplifiers[i].Finish:
+					if i == 4 {
+						finish = true
+						break
+					}
+				default:
+					if !amplifiers[i].Started {
+						amplifiers[i].Input <- comb[i]
+						go amplifiers[i].Exec(copyInstructions(instructions))
+					}
+					amplifiers[i].Input <- phase
+					phase = <-amplifiers[i].Output
 				}
-				if !amplifiers[i].Started {
-					go amplifiers[i].Exec(copyInstructions(instructions))
-				}
-				amplifiers[i].Input <- comb[i]
-				amplifiers[i].Input <- phase
-				phase = <-amplifiers[i].Output
 			}
 		}
 		out := amplifiers[len(amplifiers)-1].Out
@@ -84,7 +88,7 @@ func partTwo(instructions []int) {
 			secondOutput = out
 		}
 	}
-	fmt.Println(secondOutput)
+	fmt.Println("second output is", secondOutput)
 }
 
 func main() {
@@ -93,6 +97,5 @@ func main() {
 		panic(err)
 	}
 	partOne(instructions)
-	// partTwo(instructions)
-
+	partTwo(instructions)
 }

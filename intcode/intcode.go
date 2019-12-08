@@ -15,6 +15,8 @@ type Intcode struct {
 	Started  bool
 	Finished bool
 	Out      int
+	name     int
+	logger   func(val interface{})
 }
 
 // NewIntCodeProgram generates a new program
@@ -39,9 +41,9 @@ func (icode *Intcode) Reset() {
 func (icode *Intcode) Halt() {
 	close(icode.Input)
 	close(icode.Output)
+	icode.Finish <- true
 	icode.Finished = true
 	icode.Started = true
-	fmt.Println("finished!")
 }
 
 // Opcode is the kinds of operations we can encounter in
@@ -172,7 +174,6 @@ func (icode *Intcode) execOutput(pos *int, i Instruction, instructions []int) ([
 	if i.First == PositionMode {
 		i1 = instructions[i1]
 	}
-	// fmt.Println("output", i1)
 	icode.Output <- i1
 	icode.Out = i1
 	*pos += increaseCounter(i)

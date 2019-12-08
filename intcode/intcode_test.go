@@ -1,6 +1,7 @@
 package intcode_test
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestGetInputsRight(t *testing.T) {
 		out, ok := <-intProgram.Output
 		require.Equal(tt, true, ok)
 		require.NotZero(tt, out)
-		require.Equal(tt, true, intProgram.Finished)
+		require.Equal(tt, true, <-intProgram.Finish)
 		require.Equal(tt, true, intProgram.Started)
 	})
 	t.Run("the program can be reset", func(tt *testing.T) {
@@ -35,5 +36,39 @@ func TestGetInputsRight(t *testing.T) {
 		intProgram.Reset()
 		require.Equal(tt, false, intProgram.Finished)
 		require.Equal(tt, false, intProgram.Started)
+	})
+	t.Run("the program can be run twice", func(tt *testing.T) {
+		intcodes := []int{
+			3, 26, 1001, 26, -4,
+			26, 3, 27, 1002, 27,
+			2, 27, 1, 27, 26,
+			27, 4, 27, 1001, 28, -1,
+			28, 1005, 28, 6, 99, 0, 0, 5,
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			intProgram.Exec(intcodes)
+		}()
+		intProgram.Input <- 9
+		intProgram.Input <- 0
+		out, ok := <-intProgram.Output
+		require.Equal(tt, true, ok)
+		require.NotZero(tt, out)
+		require.Equal(tt, false, intProgram.Finished)
+		require.Equal(tt, true, intProgram.Started)
+		intProgram.Input <- 9
+		intProgram.Input <- 0
+		out, ok = <-intProgram.Output
+		require.Equal(tt, true, ok)
+		require.NotZero(tt, out)
+		require.Equal(tt, false, intProgram.Finished)
+		require.Equal(tt, true, intProgram.Started)
+		select {
+		case _ = <-intProgram.Finish:
+			require.Fail(tt, "the program has finished")
+		default:
+			fmt.Println("this is ok")
+		}
 	})
 }
