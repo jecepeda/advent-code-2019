@@ -9,14 +9,15 @@ import (
 
 // Intcode is the main program that executes a set of instructions
 type Intcode struct {
-	Input    chan int
-	Output   chan int
-	Finish   chan bool
-	Started  bool
-	Finished bool
-	Out      int
-	name     int
-	logger   func(val interface{})
+	Input        chan int
+	Output       chan int
+	Finish       chan bool
+	Started      bool
+	Finished     bool
+	RelativeBase int
+	Out          int
+	name         int
+	logger       func(val interface{})
 }
 
 // NewIntCodeProgram generates a new program
@@ -29,7 +30,7 @@ func NewIntCodeProgram() *Intcode {
 
 func (icode *Intcode) Reset() {
 	in := make(chan int, 20)
-	out := make(chan int)
+	out := make(chan int, 20)
 	finish := make(chan bool)
 	icode.Input = in
 	icode.Output = out
@@ -52,16 +53,22 @@ type Opcode int
 
 // possible operations
 const (
-	Sum         Opcode = 1
-	Multiply    Opcode = 2
-	Input       Opcode = 3
-	Output      Opcode = 4
-	JumpIfTrue  Opcode = 5
-	JumpIfFalse Opcode = 6
-	LessThan    Opcode = 7
-	Equals      Opcode = 8
-	Break       Opcode = 99
+	Sum          Opcode = 1
+	Multiply     Opcode = 2
+	Input        Opcode = 3
+	Output       Opcode = 4
+	JumpIfTrue   Opcode = 5
+	JumpIfFalse  Opcode = 6
+	LessThan     Opcode = 7
+	Equals       Opcode = 8
+	RelativeBase Opcode = 9
+	Break        Opcode = 99
 )
+
+type Parameter struct {
+	Value int
+	Mode  ParameterMode
+}
 
 // ParameterMode is the kind of parameters we can
 // encounter when reading operations
@@ -71,6 +78,7 @@ type ParameterMode int
 const (
 	PositionMode  ParameterMode = 0
 	InmediateMode ParameterMode = 1
+	RelativeMode  ParameterMode = 2
 )
 
 // Instruction is the complete instruction
